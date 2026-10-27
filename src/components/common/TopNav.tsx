@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Clock,
   Layers,
+  LogOut,
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../../types';
 import { dataStore } from '../../services/mockData';
@@ -29,6 +30,7 @@ interface TopNavProps {
   onOpenAuditModal?: () => void;
   onOpenAuthModal: () => void;
   setIsMobileOpen: (open: boolean) => void;
+  onLogout?: () => void;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({
@@ -42,6 +44,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenAuditModal,
   onOpenAuthModal,
   setIsMobileOpen,
+  onLogout,
 }) => {
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -282,62 +285,92 @@ export const TopNav: React.FC<TopNavProps> = ({
                 </div>
               </div>
 
-              <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                Switch Role Perspective (Demo)
-              </div>
+              {!isSupabaseConfigured() && (
+                <>
+                  <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Switch Role Perspective (Demo)
+                  </div>
 
-              <div className="space-y-1">
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => {
+                        onRoleChange('usr-1');
+                        setShowRoleMenu(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded text-left transition-colors ${
+                        activeUser.id === 'usr-1' ? 'bg-orange-50 text-orange-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-xs font-medium">Rajiv Malhotra</p>
+                        <p className="text-[11px] text-slate-500">Super Admin · Full Access</p>
+                      </div>
+                      {activeUser.id === 'usr-1' && <CheckCircle2 className="w-4 h-4 text-orange-600" />}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        onRoleChange('usr-2');
+                        setShowRoleMenu(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded text-left transition-colors ${
+                        activeUser.id === 'usr-2' ? 'bg-orange-50 text-orange-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-xs font-medium">Neha Singhal</p>
+                        <p className="text-[11px] text-slate-500">Staff · Operations & CRM</p>
+                      </div>
+                      {activeUser.id === 'usr-2' && <CheckCircle2 className="w-4 h-4 text-orange-600" />}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        onRoleChange('usr-3');
+                        setShowRoleMenu(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded text-left transition-colors ${
+                        activeUser.id === 'usr-3' ? 'bg-orange-50 text-orange-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-xs font-medium">Vikram Joshi (Apex Wealth)</p>
+                        <p className="text-[11px] text-slate-500">Sub-Broker (IX-SB-101)</p>
+                      </div>
+                      {activeUser.id === 'usr-3' && <CheckCircle2 className="w-4 h-4 text-orange-600" />}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Log Out Action */}
+              <div className="pt-2 mt-2 border-t border-slate-100">
                 <button
                   onClick={() => {
-                    onRoleChange('usr-1');
                     setShowRoleMenu(false);
+                    if (onLogout) onLogout();
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded text-left transition-colors ${
-                    activeUser.id === 'usr-1' ? 'bg-orange-50 text-orange-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                  }`}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50 rounded text-left transition-colors font-medium text-xs cursor-pointer"
                 >
-                  <div>
-                    <p className="text-xs font-medium">Rajiv Malhotra</p>
-                    <p className="text-[11px] text-slate-500">Super Admin · Full Access</p>
-                  </div>
-                  {activeUser.id === 'usr-1' && <CheckCircle2 className="w-4 h-4 text-orange-600" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    onRoleChange('usr-2');
-                    setShowRoleMenu(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded text-left transition-colors ${
-                    activeUser.id === 'usr-2' ? 'bg-orange-50 text-orange-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  <div>
-                    <p className="text-xs font-medium">Neha Singhal</p>
-                    <p className="text-[11px] text-slate-500">Staff · Operations & CRM</p>
-                  </div>
-                  {activeUser.id === 'usr-2' && <CheckCircle2 className="w-4 h-4 text-orange-600" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    onRoleChange('usr-3');
-                    setShowRoleMenu(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded text-left transition-colors ${
-                    activeUser.id === 'usr-3' ? 'bg-orange-50 text-orange-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  <div>
-                    <p className="text-xs font-medium">Vikram Joshi (Apex Wealth)</p>
-                    <p className="text-[11px] text-slate-500">Sub-Broker (IX-SB-101)</p>
-                  </div>
-                  {activeUser.id === 'usr-3' && <CheckCircle2 className="w-4 h-4 text-orange-600" />}
+                  <LogOut className="w-4 h-4" />
+                  <span>Log Out of IFBMS</span>
                 </button>
               </div>
             </div>
           )}
         </div>
+
+        {/* Quick Log Out Button */}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            title="Log Out of IFBMS"
+            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
+            aria-label="Log Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </header>
   );

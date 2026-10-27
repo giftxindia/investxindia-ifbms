@@ -1362,6 +1362,10 @@ class DataStore {
     this.notify();
   }
 
+  getUsers(): UserProfile[] {
+    return INITIAL_USERS;
+  }
+
   getActiveUser(): UserProfile {
     const userId = getStored<string>(KEYS.ACTIVE_USER_ID, 'usr-1');
     return INITIAL_USERS.find((u) => u.id === userId) || INITIAL_USERS[0];

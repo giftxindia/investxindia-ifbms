@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { UserCheck, Shield, Key, Plus, Lock, CheckCircle2, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { UserCheck, Shield, Key, Plus, Lock, CheckCircle2, User, RefreshCw } from 'lucide-react';
 import { DataTable, Column } from '../components/common/DataTable';
 import { StatusPill } from '../components/common/StatusPill';
 import { Modal } from '../components/common/Modal';
 import { INITIAL_USERS } from '../services/mockData';
+import { authService, logAuditEvent } from '../services/supabaseService';
+import { isSupabaseConfigured, supabase } from '../services/supabaseClient';
 import { UserProfile, UserRole } from '../types';
 
 interface UserManagementPageProps {
@@ -12,7 +14,26 @@ interface UserManagementPageProps {
 
 export const UserManagementPage: React.FC<UserManagementPageProps> = ({ userRole }) => {
   const [users, setUsers] = useState<UserProfile[]>(INITIAL_USERS);
+  const [isLoading, setIsLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      setIsLoading(true);
+      try {
+        const fetched = await authService.getAllUsers();
+        if (fetched && fetched.length > 0) {
+          setUsers(fetched);
+        }
+      } catch (err) {
+        console.warn('Failed to load users from auth service:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUsers();
+  }, []);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -23,7 +44,7 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ userRole
     subBrokerCode: '',
   });
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.email.trim()) return;
 
@@ -44,7 +65,25 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ userRole
           : ['view_assigned_clients', 'submit_leads'],
     };
 
-    setUsers([...users, newUser]);
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('profiles').insert({
+          id: crypto.randomUUID(),
+          full_name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          phone: formData.phone.trim(),
+          role: formData.role,
+          staff_department: formData.role === 'staff' ? formData.staffDepartment : null,
+          sub_broker_code: formData.role === 'sub_broker' ? formData.subBrokerCode : null,
+          is_active: true,
+        });
+        await logAuditEvent('USER_PROVISIONED', 'profiles', formData.email, `Super Admin provisioned account for ${formData.email} as ${formData.role}`);
+      } catch (err) {
+        console.warn('Could not insert profile in Supabase:', err);
+      }
+    }
+
+    setUsers([newUser, ...users]);
     setIsAddModalOpen(false);
     setFormData({
       name: '',

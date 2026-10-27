@@ -12,11 +12,9 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess }) => {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<UserRole>('staff');
+  const [isResetMode, setIsResetMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -30,7 +28,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
     setSuccessMessage(null);
 
     try {
-      if (mode === 'signin') {
+      if (!isResetMode) {
         const { user, error } = await authService.signIn(email, password);
         if (error) {
           setErrorMessage(error);
@@ -42,12 +40,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           }, 800);
         }
       } else {
-        const { success, error } = await authService.signUp(email, password, fullName, role);
-        if (error) {
-          setErrorMessage(error);
+        const { success, error } = await authService.resetPassword(email);
+        if (error || !success) {
+          setErrorMessage(error || 'Failed to dispatch reset email.');
         } else {
-          setSuccessMessage('Registration initiated! Check your email or log in.');
-          setMode('signin');
+          setSuccessMessage(`Password reset link dispatched to ${email}. Check your inbox.`);
+          setIsResetMode(false);
         }
       }
     } catch (err: any) {
@@ -61,7 +59,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={mode === 'signin' ? 'Sign in to Investxindia IFBMS' : 'Register New User Account'}
+      title={isResetMode ? 'Reset IFBMS Account Password' : 'Sign in to Investxindia IFBMS'}
       subtitle={
         isConfigured
           ? 'Connecting directly to Supabase Authentication'
@@ -94,56 +92,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          {mode === 'signup' && (
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Full Name</label>
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Rajiv Malhotra"
-                className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-hidden focus:ring-1 focus:ring-orange-500"
-              />
-            </div>
-          )}
-
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Email Address</label>
+            <label className="block font-semibold text-slate-700 mb-1">Corporate Email Address</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="user@investxindia.com"
+              placeholder="info.investxindia@gmail.com"
               className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-hidden focus:ring-1 focus:ring-orange-500"
             />
           </div>
 
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-hidden focus:ring-1 focus:ring-orange-500 font-mono"
-            />
-          </div>
-
-          {mode === 'signup' && (
+          {!isResetMode && (
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Requested Role</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as UserRole)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-hidden focus:ring-1 focus:ring-orange-500"
-              >
-                <option value="staff">Staff (Operations & Underwriting)</option>
-                <option value="sub_broker">Sub-Broker (Channel Partner)</option>
-                <option value="super_admin">Super Admin (Requires First-Admin Provisioning)</option>
-              </select>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-semibold text-slate-700">Password</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsResetMode(true);
+                    setErrorMessage(null);
+                    setSuccessMessage(null);
+                  }}
+                  className="text-[11px] text-orange-600 hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-hidden focus:ring-1 focus:ring-orange-500 font-mono"
+              />
             </div>
           )}
 
@@ -153,22 +137,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
               disabled={isLoading}
               className="w-full py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-md transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {isLoading ? 'Processing...' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+              {isLoading ? 'Processing...' : isResetMode ? 'Send Reset Link' : 'Sign In'}
             </button>
           </div>
         </form>
 
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500">
-          <span>
-            {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}
-          </span>
-          <button
-            type="button"
-            onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-            className="text-orange-600 font-semibold hover:underline"
-          >
-            {mode === 'signin' ? 'Sign up' : 'Sign in'}
-          </button>
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          {isResetMode ? (
+            <button
+              type="button"
+              onClick={() => setIsResetMode(false)}
+              className="text-orange-600 font-semibold hover:underline"
+            >
+              ← Back to Sign In
+            </button>
+          ) : (
+            <span className="italic">
+              Public registration is disabled. Accounts are provisioned exclusively by administrators.
+            </span>
+          )}
         </div>
       </div>
     </Modal>

@@ -63,25 +63,46 @@ export const authService = {
   },
 
   async getCurrentSession() {
-    if (!isSupabaseConfigured()) return null;
+    if (!isSupabaseConfigured()) {
+      const sandboxUserJson = sessionStorage.getItem('ifbms_sandbox_user');
+      return sandboxUserJson ? JSON.parse(sandboxUserJson) : null;
+    }
     const { data } = await supabase.auth.getSession();
     return data.session;
   },
 
   async getCurrentProfile(): Promise<UserProfile | null> {
     if (!isSupabaseConfigured()) {
-      return dataStore.getActiveUser();
+      const stored = sessionStorage.getItem('ifbms_sandbox_user');
+      if (!stored) return null;
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return null;
+      }
     }
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) return null;
 
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) return null;
+
+    const userId = sessionData.session.user.id;
+
+    // Fetch trusted profile directly from PostgreSQL database (never trust client metadata)
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', sessionData.session.user.id)
+      .eq('id', userId)
       .single();
 
-    if (error || !profile) return null;
+    if (error || !profile) {
+      console.warn('No authorized profile row found in public.profiles for authenticated user ID:', userId);
+      return null;
+    }
+
+    if (!profile.is_active) {
+      console.warn('Account profile is marked inactive in database:', userId);
+      return null;
+    }
 
     return {
       id: profile.id,
@@ -102,60 +123,154 @@ export const authService = {
     };
   },
 
-  async signIn(email: string, password: string): Promise<{ user: UserProfile | null; error: string | null }> {
+  async getAllUsers(): Promise<UserProfile[]> {
     if (!isSupabaseConfigured()) {
-      const matched = dataStore.getActiveUser();
+      return dataStore.getUsers();
+    }
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Could not fetch profiles from Supabase:', error);
+      return [];
+    }
+
+    return (data || []).map((p: any) => ({
+      id: p.id,
+      name: p.full_name,
+      email: p.email,
+      phone: p.phone || '',
+      role: p.role,
+      staffDepartment: p.staff_department,
+      subBrokerCode: p.sub_broker_code,
+      avatarUrl: p.avatar_url,
+      status: p.is_active ? 'active' : 'inactive',
+      permissions:
+        p.role === 'super_admin'
+          ? ['all']
+          : p.role === 'staff'
+          ? ['crm_access', 'operations_read_write']
+          : ['view_assigned_clients', 'submit_leads'],
+    }));
+  },
+
+  async signIn(email: string, password: string): Promise<{ user: UserProfile | null; error: string | null }> {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!isSupabaseConfigured()) {
+      // Sandbox validation: match demo users or provide sandbox staff session
+      let matched = dataStore.getUsers().find((u: UserProfile) => u.email.toLowerCase() === cleanEmail);
+      if (!matched) {
+        if (cleanEmail === 'info.investxindia@gmail.com' || cleanEmail.includes('admin')) {
+          matched = {
+            id: 'usr-1',
+            name: 'Rajiv Malhotra (Executive Super Admin)',
+            email: 'info.investxindia@gmail.com',
+            phone: '+91 98200 11223',
+            role: 'super_admin',
+            staffDepartment: 'Executive Directorate',
+            status: 'active',
+            permissions: ['all'],
+          };
+        } else if (cleanEmail.includes('sb') || cleanEmail.includes('broker') || cleanEmail.includes('partner')) {
+          matched = {
+            id: 'usr-3',
+            name: 'Vikram Joshi (Apex Wealth)',
+            email: cleanEmail,
+            phone: '+91 98204 45566',
+            role: 'sub_broker',
+            subBrokerCode: 'IX-SB-101',
+            status: 'active',
+            permissions: ['view_assigned_clients', 'submit_leads'],
+          };
+        } else {
+          matched = {
+            id: `usr-sandbox-${Date.now()}`,
+            name: cleanEmail.split('@')[0].toUpperCase(),
+            email: cleanEmail,
+            phone: '+91 98200 99999',
+            role: 'staff',
+            staffDepartment: 'Operations & CRM',
+            status: 'active',
+            permissions: ['crm_access', 'operations_read_write'],
+          };
+        }
+      }
+
+      sessionStorage.setItem('ifbms_sandbox_user', JSON.stringify(matched));
+      dataStore.setActiveUser(matched.id);
+      await logAuditEvent('USER_SIGN_IN_SANDBOX', 'profiles', matched.id, `User ${matched.email} logged in (Sandbox Mode)`, matched);
       return { user: matched, error: null };
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { user: null, error: error.message };
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
+
+    if (error) {
+      return { user: null, error: error.message };
+    }
 
     const profile = await this.getCurrentProfile();
-    if (profile) {
-      await logAuditEvent('USER_SIGN_IN', 'profiles', profile.id, `User ${profile.email} signed in successfully`, profile);
+    if (!profile) {
+      await supabase.auth.signOut();
+      return {
+        user: null,
+        error:
+          'Authentication verified with Supabase, but no active role record was found in public.profiles. An administrator must provision your account profile in the database before you can log in.',
+      };
     }
+
+    if (profile.status === 'inactive') {
+      await supabase.auth.signOut();
+      return {
+        user: null,
+        error: 'Your account is deactivated. Contact the Executive Directorate at info.investxindia@gmail.com.',
+      };
+    }
+
+    await logAuditEvent('USER_SIGN_IN', 'profiles', profile.id, `User ${profile.email} signed in successfully`, profile);
     return { user: profile, error: null };
   },
 
-  async signUp(email: string, password: string, fullName: string, role: UserRole): Promise<{ success: boolean; error: string | null }> {
+  async signUp(): Promise<{ success: boolean; error: string | null }> {
+    return {
+      success: false,
+      error:
+        'Access Policy Restriction: Public self-registration is disabled for this secure financial system. All user accounts and roles are provisioned exclusively by authorized administrators.',
+    };
+  },
+
+  async resetPassword(email: string): Promise<{ success: boolean; error: string | null }> {
+    const cleanEmail = email.trim().toLowerCase();
     if (!isSupabaseConfigured()) {
       return { success: true, error: null };
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          role,
-        },
-      },
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: `${window.location.origin}/`,
     });
 
-    if (error) return { success: false, error: error.message };
-
-    if (data.user) {
-      await supabase.from('profiles').upsert({
-        id: data.user.id,
-        full_name: fullName,
-        email,
-        role,
-        is_active: true,
-      });
-
-      await logAuditEvent('USER_REGISTRATION', 'profiles', data.user.id, `New account registered for ${email} with requested role ${role}`);
+    if (error) {
+      return { success: false, error: error.message };
     }
 
     return { success: true, error: null };
   },
 
   async signOut(): Promise<void> {
+    sessionStorage.removeItem('ifbms_sandbox_user');
     if (isSupabaseConfigured()) {
-      const current = await this.getCurrentProfile();
-      if (current) {
-        await logAuditEvent('USER_SIGN_OUT', 'profiles', current.id, `User ${current.email} signed out`);
+      try {
+        const current = await this.getCurrentProfile();
+        if (current) {
+          await logAuditEvent('USER_SIGN_OUT', 'profiles', current.id, `User ${current.email} signed out`);
+        }
+      } catch {
+        // Continue sign out even if audit logging fails
       }
       await supabase.auth.signOut();
     }
