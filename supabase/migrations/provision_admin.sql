@@ -108,7 +108,7 @@ $$;
 -- Step 4: Execute the Provisioning for the First Admin
 SELECT public.provision_first_admin(
     'info.investxindia@gmail.com',
-    'Rahul Pandey (Executive Super Admin)'
+    'Rajiv Malhotra (Executive Super Admin)'
 );
 
 -- Step 5: Verification Query
