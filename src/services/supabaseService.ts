@@ -32,26 +32,9 @@ export async function logAuditEvent(
   details: string,
   actor?: UserProfile
 ) {
-  const currentActor = actor || dataStore.getActiveUser();
-
-  if (isSupabaseConfigured()) {
-    try {
-      await supabase.from('audit_logs').insert({
-        actor_name: currentActor.name,
-        actor_role: currentActor.role,
-        action,
-        entity_type: entityType,
-        entity_id: entityId,
-        details,
-        ip_address: '103.21.144.12 (Mumbai, IN)',
-      });
-    } catch (err) {
-      console.warn('Failed to insert Supabase audit log, recording locally:', err);
-      dataStore.logAudit(action, entityType, entityId, details);
-    }
-  } else {
-    dataStore.logAudit(action, entityType, entityId, details);
-  }
+  // In Supabase, table mutations are automatically and immutably audited by database triggers (audit_table_mutation).
+  // The local dataStore buffer is maintained for synchronous UI reactivity without exposing an insecure audit RPC.
+  dataStore.logAudit(action, entityType, entityId, details);
 }
 
 /**
@@ -179,6 +162,13 @@ export const authService = {
     });
 
     if (error) {
+      if (error.message.includes('Invalid path specified in request URL') || (error as any).code === 'PGRST125') {
+        return {
+          user: null,
+          error:
+            'Supabase Gateway Routing Error: "Invalid path specified in request URL". This occurs when VITE_SUPABASE_URL contains an extra path segment (such as "/rest/v1" or "/auth/v1"). In Vercel, ensure VITE_SUPABASE_URL is set strictly to the base origin "https://<project-ref>.supabase.co" without any subpaths.',
+        };
+      }
       return { user: null, error: error.message };
     }
 
@@ -296,8 +286,8 @@ export const staffService = {
       return [
         {
           id: 'usr-1',
-          name: 'Rajiv Malhotra',
-          email: 'rajiv.malhotra@investxindia.com',
+          name: 'Rahul Pandey',
+          email: 'info.investxindia@gmail.com',
           phone: '+91 98200 11223',
           role: 'super_admin',
           staffDepartment: 'Executive Directorate',

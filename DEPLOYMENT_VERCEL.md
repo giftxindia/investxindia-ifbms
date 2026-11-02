@@ -86,7 +86,7 @@ To establish the first administrative account:
 ```sql
 SELECT public.provision_first_admin(
     'info.investxindia@gmail.com',
-    'Rajiv Malhotra (Executive Super Admin)'
+    'Rahul Pandey'
 );
 ```
 2. Have the Super Admin register or log in using `info.investxindia@gmail.com`. The trigger will automatically assign them the `super_admin` role with full system privileges.

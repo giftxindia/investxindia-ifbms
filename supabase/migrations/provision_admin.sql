@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION public.provision_first_admin(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, auth
+SET search_path = public, auth, pg_temp
 AS $$
 DECLARE
     target_user_id UUID;
@@ -105,10 +105,15 @@ BEGIN
 END;
 $$;
 
+-- Security Hardening: Never expose first-admin provisioning as a public RPC
+REVOKE ALL ON FUNCTION public.provision_first_admin(TEXT, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.provision_first_admin(TEXT, TEXT) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.provision_first_admin(TEXT, TEXT) TO postgres, service_role;
+
 -- Step 4: Execute the Provisioning for the First Admin
 SELECT public.provision_first_admin(
     'info.investxindia@gmail.com',
-    'Rajiv Malhotra (Executive Super Admin)'
+    'Rahul Pandey'
 );
 
 -- Step 5: Verification Query

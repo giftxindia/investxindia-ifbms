@@ -20,7 +20,7 @@ const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const targetEmail = process.argv[2] || process.env.INITIAL_SUPER_ADMIN_EMAIL || 'info.investxindia@gmail.com';
 const targetPassword = process.argv[3] || process.env.INITIAL_SUPER_ADMIN_PASSWORD || 'Investx@Admin2026!';
-const targetName = process.argv[4] || 'Rajiv Malhotra (Executive Super Admin)';
+const targetName = process.argv[4] || 'Rahul Pandey';
 
 async function provisionSuperAdmin() {
   console.log('=======================================================');

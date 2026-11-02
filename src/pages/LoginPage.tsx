@@ -14,7 +14,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { authService } from '../services/supabaseService';
-import { isSupabaseConfigured } from '../services/supabaseClient';
+import { isSupabaseConfigured, getSupabaseConfigDiagnostics } from '../services/supabaseClient';
 import { UserProfile } from '../types';
 
 interface LoginPageProps {
@@ -34,7 +34,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSupa
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const isLive = isSupabaseConfigured();
+  const diagnostics = getSupabaseConfigDiagnostics();
+  const isLive = diagnostics.isConfigured;
 
   // Handle standard Email & Password Sign In
   const handleSignIn = async (e: React.FormEvent) => {
@@ -42,7 +43,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSupa
 
     if (!isLive) {
       setErrorMessage(
-        'ACCESS DENIED: Real Supabase project credentials are missing. Sandbox and Demo modes have been permanently decommissioned. Populate VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel to unlock authentication.'
+        `ACCESS DENIED: Real Supabase project credentials are missing (${diagnostics.missingVariables.join(', ')}). Sandbox and Demo modes have been permanently decommissioned. Populate VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel to unlock authentication.`
       );
       return;
     }
@@ -148,32 +149,100 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSupa
         <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-5">
           {/* Missing Configuration Notice Banner (Mandatory when credentials not found) */}
           {!isLive && (
-            <div className="p-4 bg-rose-950/70 border border-rose-800/80 rounded-xl space-y-2.5 text-xs text-rose-200">
+            <div className="p-4 bg-rose-950/70 border border-rose-800/80 rounded-xl space-y-3 text-xs text-rose-200">
               <div className="flex items-center gap-2 font-bold text-rose-300">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>Supabase Configuration Required</span>
               </div>
               <p className="text-[11px] text-rose-200/90 leading-relaxed">
-                Demo and Sandbox modes have been completely removed. Direct access to the dashboard is strictly locked until your Supabase credentials are configured in your hosting environment (Vercel).
+                Direct access to the dashboard is strictly locked until your Supabase project credentials are compiled into your hosting environment (Vercel).
               </p>
-              <div className="bg-slate-950/80 p-2.5 rounded-lg border border-rose-900/50 space-y-1.5 font-mono text-[10px]">
-                <div className="text-slate-400 font-sans font-semibold mb-1">Required Vercel Variables:</div>
-                <div className="flex items-center justify-between text-slate-300">
-                  <span>VITE_SUPABASE_URL</span>
-                  <span className="text-rose-400 font-sans font-bold uppercase text-[9px] px-1.5 py-0.5 bg-rose-950 rounded">Required</span>
+
+              {/* Variable Diagnostics Table */}
+              <div className="bg-slate-950/90 p-3 rounded-lg border border-rose-900/50 space-y-2 font-mono text-[10px]">
+                <div className="text-slate-400 font-sans font-semibold mb-1 flex items-center justify-between">
+                  <span>Environment Variables Diagnostic:</span>
+                  <span className="text-[10px] text-slate-500 font-mono">Build-Time Ingestion</span>
                 </div>
-                <div className="flex items-center justify-between text-slate-300">
-                  <span>VITE_SUPABASE_ANON_KEY</span>
-                  <span className="text-rose-400 font-sans font-bold uppercase text-[9px] px-1.5 py-0.5 bg-rose-950 rounded">Required</span>
+
+                {/* URL Status */}
+                <div className="flex items-start justify-between gap-2 py-1 border-b border-slate-900">
+                  <div className="min-w-0">
+                    <span className="text-slate-200 font-bold block">VITE_SUPABASE_URL</span>
+                    <span className="text-[9px] text-slate-400 block truncate font-sans">
+                      {diagnostics.urlStatus === 'configured'
+                        ? `Detected: ${diagnostics.maskedUrl} (${diagnostics.urlSource})`
+                        : diagnostics.urlStatus === 'placeholder'
+                        ? 'Placeholder detected (e.g. your-project-id)'
+                        : diagnostics.urlStatus === 'malformed'
+                        ? 'Malformed URL format'
+                        : 'Not detected in build environment'}
+                    </span>
+                  </div>
+                  <span
+                    className={`shrink-0 font-sans font-bold uppercase text-[9px] px-1.5 py-0.5 rounded ${
+                      diagnostics.urlStatus === 'configured'
+                        ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/50'
+                        : diagnostics.urlStatus === 'placeholder'
+                        ? 'bg-amber-950 text-amber-400 border border-amber-800/50'
+                        : 'bg-rose-950 text-rose-400 border border-rose-800/50'
+                    }`}
+                  >
+                    {diagnostics.urlStatus === 'configured' ? 'Configured' : diagnostics.urlStatus}
+                  </span>
                 </div>
+
+                {/* Anon Key Status */}
+                <div className="flex items-start justify-between gap-2 py-1">
+                  <div className="min-w-0">
+                    <span className="text-slate-200 font-bold block">VITE_SUPABASE_ANON_KEY</span>
+                    <span className="text-[9px] text-slate-400 block truncate font-sans">
+                      {diagnostics.keyStatus === 'configured'
+                        ? `Detected: ${diagnostics.keyInfo} (${diagnostics.keySource})`
+                        : diagnostics.keyStatus === 'placeholder'
+                        ? 'Placeholder text detected (...)'
+                        : diagnostics.keyStatus === 'malformed'
+                        ? 'Truncated or invalid format'
+                        : 'Not detected in build environment'}
+                    </span>
+                  </div>
+                  <span
+                    className={`shrink-0 font-sans font-bold uppercase text-[9px] px-1.5 py-0.5 rounded ${
+                      diagnostics.keyStatus === 'configured'
+                        ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/50'
+                        : diagnostics.keyStatus === 'placeholder'
+                        ? 'bg-amber-950 text-amber-400 border border-amber-800/50'
+                        : 'bg-rose-950 text-rose-400 border border-rose-800/50'
+                    }`}
+                  >
+                    {diagnostics.keyStatus === 'configured' ? 'Configured' : diagnostics.keyStatus}
+                  </span>
+                </div>
+
+                {diagnostics.pathCorrectionApplied && (
+                  <div className="pt-1.5 border-t border-slate-900 text-[9px] text-amber-300 font-sans flex items-start gap-1">
+                    <span>⚠️</span>
+                    <span>{diagnostics.pathCorrectionDetail}</span>
+                  </div>
+                )}
               </div>
+
+              {/* Vercel Troubleshooting Guidance */}
+              <div className="bg-slate-900/60 p-2.5 rounded border border-rose-900/40 text-[10px] text-slate-300 space-y-1">
+                <span className="font-semibold text-rose-300 block">Vercel Deployment Checklist:</span>
+                <ol className="list-decimal pl-4 space-y-0.5 text-[10px] text-slate-400">
+                  <li>In Vercel Project Settings &gt; Environment Variables, ensure variables are enabled for <strong>Production</strong>.</li>
+                  <li>In Vercel Deployments &gt; [Options ...] &gt; <strong>Redeploy</strong>, ensure <strong>&quot;Use existing Build Cache&quot; is UNCHECKED</strong> (Vite compiles variables during build).</li>
+                </ol>
+              </div>
+
               {onOpenSupabaseModal && (
                 <button
                   type="button"
                   onClick={onOpenSupabaseModal}
                   className="w-full mt-1 py-1.5 px-3 bg-rose-900/40 hover:bg-rose-900/60 border border-rose-700/50 text-rose-200 rounded text-[11px] font-semibold transition-colors cursor-pointer text-center"
                 >
-                  View Supabase Migration & Setup Instructions
+                  View Supabase Migration &amp; Setup Instructions
                 </button>
               )}
             </div>

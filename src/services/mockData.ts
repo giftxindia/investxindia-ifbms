@@ -21,8 +21,8 @@ import {
 export const INITIAL_USERS: UserProfile[] = [
   {
     id: 'usr-1',
-    name: 'Rajiv Malhotra',
-    email: 'rajiv.malhotra@investxindia.com',
+    name: 'Rahul Pandey',
+    email: 'info.investxindia@gmail.com',
     phone: '+91 98200 11223',
     role: 'super_admin',
     staffDepartment: 'Executive Directorate',
@@ -951,7 +951,7 @@ export const INITIAL_PAYOUTS: PartnerPayout[] = [
     bankReferenceNo: 'HDFCR52026022800412891',
     disbursementDate: '2026-02-28',
     status: 'completed',
-    approvedBy: 'Rajiv Malhotra (Super Admin)',
+    approvedBy: 'Rahul Pandey (Super Admin)',
   },
   {
     id: 'pay-2',
@@ -968,7 +968,7 @@ export const INITIAL_PAYOUTS: PartnerPayout[] = [
     bankReferenceNo: 'ICICN2026033100881923',
     disbursementDate: '2026-03-31',
     status: 'completed',
-    approvedBy: 'Rajiv Malhotra (Super Admin)',
+    approvedBy: 'Rahul Pandey (Super Admin)',
   },
   {
     id: 'pay-3',
@@ -1057,7 +1057,7 @@ export const INITIAL_DOCUMENTS: DocumentItem[] = [
     accessLog: [
       {
         id: 'acc-1',
-        accessedBy: 'Rajiv Malhotra',
+        accessedBy: 'Rahul Pandey',
         role: 'super_admin',
         accessedAt: '2026-04-10T09:30:00Z',
         ipAddress: '103.21.144.12',
@@ -1100,7 +1100,7 @@ export const INITIAL_DOCUMENTS: DocumentItem[] = [
     isPrivate: true,
     sha256Checksum: '11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff',
     uploadedAt: '2025-04-01T09:15:00Z',
-    uploadedBy: 'Rajiv Malhotra',
+    uploadedBy: 'Rahul Pandey',
     verified: true,
     accessLog: [],
   },
@@ -1192,7 +1192,7 @@ export const INITIAL_IMPORT_JOBS: ImportJob[] = [
     successCount: 45,
     errorCount: 0,
     duplicateCount: 0,
-    importedBy: 'Rajiv Malhotra',
+    importedBy: 'Rahul Pandey',
     importedAt: '2026-04-19T14:15:00Z',
     status: 'completed',
   },
@@ -1231,7 +1231,7 @@ export const INITIAL_TASKS: TaskReminder[] = [
     priority: 'high',
     dueDate: '2026-04-30',
     relatedTo: 'Vikram Joshi (IX-SB-101)',
-    assignedTo: 'Rajiv Malhotra',
+    assignedTo: 'Rahul Pandey',
     status: 'in_progress',
     reminderType: 'Payout Query',
   },
@@ -1263,7 +1263,7 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {
     id: 'aud-1',
     timestamp: '2026-04-22T08:14:22Z',
-    actorName: 'Rajiv Malhotra',
+    actorName: 'Rahul Pandey',
     actorRole: 'super_admin',
     action: 'BROKERAGE_RULE_UPDATED',
     entityType: 'BrokerageRule',
@@ -1285,7 +1285,7 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {
     id: 'aud-3',
     timestamp: '2026-04-20T11:05:44Z',
-    actorName: 'Rajiv Malhotra',
+    actorName: 'Rahul Pandey',
     actorRole: 'super_admin',
     action: 'PAYOUT_BATCH_AUTHORIZED',
     entityType: 'PartnerPayout',

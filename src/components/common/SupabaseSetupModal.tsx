@@ -44,7 +44,7 @@ INITIAL_SUPER_ADMIN_PASSWORD="Investx@Admin2026!"`;
   const adminSQLSample = `-- Run in Supabase SQL Editor AFTER user signs up:
 SELECT public.provision_first_admin(
     'info.investxindia@gmail.com',
-    'Rajiv Malhotra (Executive Super Admin)'
+    'Rahul Pandey'
 );`;
 
   const runTest = async () => {
@@ -174,6 +174,11 @@ SELECT public.provision_first_admin(
                     )}
                     <span>{testResult.message}</span>
                   </div>
+                  {testResult.details && testResult.details.pathCorrectionApplied && (
+                    <div className="mt-2 p-2 bg-amber-100/80 border border-amber-300 rounded text-[11px] text-amber-900">
+                      ℹ️ Base URL Sanitization: Trailing subpath (such as /rest/v1 or /auth/v1) was automatically removed to prevent duplicate path routing.
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-3 bg-white border border-slate-200 rounded text-[11px] text-slate-500">
@@ -263,7 +268,7 @@ SELECT public.provision_first_admin(
                   Run this terminal command in your repository where <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> is set in .env:
                 </p>
                 <pre className="p-2.5 bg-slate-900 text-emerald-400 rounded font-mono text-[11px] overflow-x-auto">
-                  npx tsx scripts/provision-admin.ts info.investxindia@gmail.com "Investx@Admin2026!" "Rajiv Malhotra"
+                  npx tsx scripts/provision-admin.ts info.investxindia@gmail.com "Investx@Admin2026!" "Rahul Pandey"
                 </pre>
               </div>
 

@@ -76,7 +76,7 @@ Privilege escalation cannot be performed from client code. Use one of these trus
 #### Method A: Command-Line Interface (CLI Script)
 Run the provisioning script using `tsx` (reads `SUPABASE_SERVICE_ROLE_KEY`):
 ```bash
-npx tsx scripts/provision-admin.ts info.investxindia@gmail.com "YourPassword123!" "Rajiv Malhotra"
+npx tsx scripts/provision-admin.ts info.investxindia@gmail.com "YourPassword123!" "Rahul Pandey"
 ```
 
 #### Method B: Supabase SQL Function
@@ -85,7 +85,7 @@ npx tsx scripts/provision-admin.ts info.investxindia@gmail.com "YourPassword123!
 ```sql
 SELECT public.provision_first_admin(
     'info.investxindia@gmail.com',
-    'Rajiv Malhotra (Executive Super Admin)'
+    'Rahul Pandey'
 );
 ```
 

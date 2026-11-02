@@ -313,7 +313,7 @@ export function runImportExportDocTestSuite(): ImportDocTestResult[] {
       fileName: 'Test_KYC.pdf',
       fileSize: '1.2 MB',
       uploadedAt: new Date().toISOString(),
-      uploadedBy: 'Rajiv Malhotra',
+      uploadedBy: 'Rahul Pandey',
       verified: true,
       isPrivate: true,
       storagePath: 'private/test/Test_KYC.pdf',
